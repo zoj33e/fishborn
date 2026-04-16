@@ -386,34 +386,35 @@ class FishingBot:
         shark_pos, shark_conf = self.find_fish_template(frame, self.shark_template, threshold=0.85)
         swordfish_pos, swordfish_conf = self.find_fish_template(frame, self.swordfish_template, threshold=0.85)
 
+        candidates = []
+
         if shark_pos is not None and not self.shark_clicked:
-            abs_x = self.fish_search_region["left"] + shark_pos[0]
-            abs_y = self.fish_search_region["top"] + shark_pos[1]
-            h, w = self.shark_template.shape[:2]
-            center_x = abs_x + w // 2
-            center_y = abs_y + h // 2
-            print(f"[PRE-CHECK] SHARK FOUND at ({center_x}, {center_y}) | CLICKING!")
-            self.click_fish(center_x, center_y)
-            self.shark_clicked = True
-            self.swordfish_clicked = False
-            return True
+            candidates.append(("shark", shark_pos, shark_conf, self.shark_template))
 
-        elif swordfish_pos is not None and not self.swordfish_clicked:
-            abs_x = self.fish_search_region["left"] + swordfish_pos[0]
-            abs_y = self.fish_search_region["top"] + swordfish_pos[1]
-            h, w = self.swordfish_template.shape[:2]
-            center_x = abs_x + w // 2
-            center_y = abs_y + h // 2
-            print(f"[PRE-CHECK] SWORDFISH FOUND at ({center_x}, {center_y}) | CLICKING!")
-            self.click_fish(center_x, center_y)
-            self.swordfish_clicked = True
-            self.shark_clicked = False
-            return True
+        if swordfish_pos is not None and not self.swordfish_clicked:
+            candidates.append(("swordfish", swordfish_pos, swordfish_conf, self.swordfish_template))
 
-        else:
+        if not candidates:
             self.shark_clicked = False
             self.swordfish_clicked = False
             return False
+
+        fish_name, fish_pos, fish_conf, fish_template = max(candidates, key=lambda item: item[2])
+        abs_x = self.fish_search_region["left"] + fish_pos[0]
+        abs_y = self.fish_search_region["top"] + fish_pos[1]
+        h, w = fish_template.shape[:2]
+        center_x = abs_x + w // 2
+        center_y = abs_y + h // 2
+
+        print(
+            f"[PRE-CHECK] {fish_name.upper()} FOUND at ({center_x}, {center_y}) "
+            f"| CONFIDENCE {fish_conf:.3f} | CLICKING!"
+        )
+        self.click_fish(center_x, center_y)
+
+        self.shark_clicked = fish_name == "shark"
+        self.swordfish_clicked = fish_name == "swordfish"
+        return True
 
     # control logic
 
